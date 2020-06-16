@@ -52,7 +52,9 @@ typings/
 
 # Optional eslint cache
 .eslintcache
-
+.eslintrc.json
+.prettierrc
+config.env
 # Microbundle cache
 .rpt2_cache/
 .rts2_cache_cjs/
