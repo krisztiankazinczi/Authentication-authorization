@@ -139,15 +139,15 @@ describe(`Positive Scenarios of ${routeUrl}`, () => {
       name: 'admin2'
     });
 
-    console.log(`resp of signup: ${responseOfSignUp.body}`);
-
     const jwt = await loginUser('mainadmin@admin.com', 'updatedSecretPassword');
 
-    const response = request
+    const response = await request
       .get(`${routeUrl}`)
       .set('authorization', `Bearer ${jwt}`);
     expect(response.statusCode).toBe(200);
-    expect(response.body)
+    expect(response.body).toHaveProperty("status", "success")
+    expect(response.body).toHaveProperty("results", 2)
+    expect(response.body).toHaveProperty("data")
   });
 
   test('Succesfully deleted myself from database', async () => {
