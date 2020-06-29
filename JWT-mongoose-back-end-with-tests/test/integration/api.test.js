@@ -3,7 +3,7 @@ const app = require('../../app');
 const mongodb = require('../../models/mongodb.util');
 const endPointUrl = '/api/v1/users';
 
-describe.skip(`Validate test endpoint`, () => {
+describe(`Validate test endpoint`, () => {
   test('GET /test', async () => {
     const response = await request(app).get('/test');
     expect(response.statusCode).toBe(200);

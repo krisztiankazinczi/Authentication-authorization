@@ -18,7 +18,7 @@ const {
 const UserModel = require('../../models/userModel');
 const crypto = require('crypto');
 
-describe.skip(`Positive Scenarios of ${routeUrl}`, () => {
+describe(`Positive Scenarios of ${routeUrl}`, () => {
   beforeAll(async () => {
     await mongodb.connect();
     await mongodb.dropCollection('users_' + process.env.NODE_ENV);
