@@ -3,10 +3,19 @@ const app = require('../../app');
 const request = supertest(app);
 const mongodb = require('../../models/mongodb.util');
 const routeUrl = '/api/v1/users';
-const mockSignupRequest = require('../mockData/signupUser.json');
-const mockUsers = require('../mockData/users');
+const {
+  mockUsers,
+  mockSignupRequest,
+  mockUpdatePasswordRequestBody,
+  mockloginWithOriginalDetails,
+  mainTestEmail,
+  originalPassword,
+  changedPassword,
+  mockUpdateMeBody,
+  updatedEmail,
+  mockSignupRequest2
+} = require('../mockData/users');
 const UserModel = require('../../models/userModel');
-const mockResetPasswordBody = require('../mockData/resetPasswordBody.json');
 const crypto = require('crypto');
 
 describe(`Positive Scenarios of ${routeUrl}`, () => {
@@ -66,10 +75,9 @@ describe(`Positive Scenarios of ${routeUrl}`, () => {
   // });
 
   test('Successfull login', async () => {
-    const response = await request.post(`${routeUrl}/login`).send({
-      email: mockSignupRequest.email,
-      password: mockSignupRequest.password
-    });
+    const response = await request
+      .post(`${routeUrl}/login`)
+      .send(mockloginWithOriginalDetails);
 
     expect(response.statusCode).toBe(200);
     expect(response.body).toHaveProperty('status', 'success');
@@ -80,19 +88,13 @@ describe(`Positive Scenarios of ${routeUrl}`, () => {
   });
 
   test('Succesfully updated my password', async () => {
-    const jwt = await loginUser(
-      mockSignupRequest.email,
-      mockSignupRequest.password
-    );
+    const jwt = await loginUser(mainTestEmail, originalPassword);
 
     const response = await request
       .patch(`${routeUrl}/updateMyPassword`)
       .set('authorization', `Bearer ${jwt}`)
-      .send({
-        passwordCurrent: 'secretPassword',
-        password: 'updatedSecretPassword',
-        passwordConfirm: 'updatedSecretPassword'
-      });
+      .send(mockUpdatePasswordRequestBody);
+
     expect(response.statusCode).toBe(200);
     expect(response.body).toHaveProperty('status', 'success');
     expect(response.body).toHaveProperty('token');
@@ -103,66 +105,55 @@ describe(`Positive Scenarios of ${routeUrl}`, () => {
   });
 
   test('Succesfully updated my basic informations', async () => {
-    const jwt = await loginUser(
-      mockSignupRequest.email,
-      'updatedSecretPassword'
-    );
+    const jwt = await loginUser(mainTestEmail, changedPassword);
 
     const response = await request
       .patch(`${routeUrl}/updateMe`)
       .set('authorization', `Bearer ${jwt}`)
-      .send({
-        name: 'mainAdmin',
-        email: 'mainadmin@admin.com'
-      });
+      .send(mockUpdateMeBody);
 
     expect(response.statusCode).toBe(200);
     expect(response.body).toHaveProperty('status', 'success');
     expect(response.body).toHaveProperty('data');
     expect(response.body.data.user).toHaveProperty('role', mockUsers[0].role);
     expect(response.body.data.user).toHaveProperty('name', 'mainAdmin');
-    expect(response.body.data.user).toHaveProperty(
-      'email',
-      'mainadmin@admin.com'
-    );
+    expect(response.body.data.user).toHaveProperty('email', updatedEmail);
   });
 
   test('GetAllUsers lists all the active users if my role is admin', async () => {
-    const user = await UserModel.findOne({ email: 'mainadmin@admin.com' });
+    const user = await UserModel.findOne({ email: updatedEmail });
     user.role = 'admin';
     await user.save({ validateBeforeSave: false });
 
-    const responseOfSignUp = await request.post(`${routeUrl}/signup`).send({
-      email: 'admin2@admin.com',
-      password: 'secretPassword',
-      passwordConfirm: 'secretPassword',
-      name: 'admin2'
-    });
+    const responseOfSignUp = await request
+      .post(`${routeUrl}/signup`)
+      .send(mockSignupRequest2);
 
-    const jwt = await loginUser('mainadmin@admin.com', 'updatedSecretPassword');
+    const jwt = await loginUser(updatedEmail, changedPassword);
 
     const response = await request
       .get(`${routeUrl}`)
       .set('authorization', `Bearer ${jwt}`);
+
     expect(response.statusCode).toBe(200);
-    expect(response.body).toHaveProperty("status", "success")
-    expect(response.body).toHaveProperty("results", 2)
-    expect(response.body).toHaveProperty("data")
+    expect(response.body).toHaveProperty('status', 'success');
+    expect(response.body).toHaveProperty('results', 2);
+    expect(response.body).toHaveProperty('data');
   });
 
   test('Succesfully deleted myself from database', async () => {
-    const jwt = await loginUser('mainadmin@admin.com', 'updatedSecretPassword');
+    const jwt = await loginUser(updatedEmail, changedPassword);
 
     const response = await request
       .delete(`${routeUrl}/deleteMe`)
       .set('authorization', `Bearer ${jwt}`);
-    console.log(response.body);
     expect(response.statusCode).toBe(204);
+
     const responseOfDeletedUserLoginTry = await request
       .post(`${routeUrl}/login`)
       .send({
-        email: 'mainadmin@admin.com',
-        password: 'updatedSecretPassword'
+        email: updatedEmail,
+        password: changedPassword
       });
     expect(responseOfDeletedUserLoginTry.statusCode).toBe(401);
     expect(responseOfDeletedUserLoginTry.body.message).toStrictEqual(
